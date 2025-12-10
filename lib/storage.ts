@@ -28,22 +28,28 @@ export async function saveRoundResult(result: RoundResult): Promise<void> {
   
   // Keep track of round IDs for retrieval
   const roundsList = (await kvGet(ROUNDS_LIST_KEY)) || [];
-  roundsList.push(result.roundId);
   
-  // Keep only last 1000 rounds
-  if (roundsList.length > 1000) {
-    const oldRoundId = roundsList.shift();
-    if (oldRoundId) {
-      await kvDelete(`${ROUNDS_KEY}${oldRoundId}`);
+  // Only add if not already present
+  if (!roundsList.includes(result.roundId)) {
+    roundsList.push(result.roundId);
+    
+    // Keep only last 1000 rounds
+    if (roundsList.length > 1000) {
+      const oldRoundId = roundsList.shift();
+      if (oldRoundId) {
+        await kvDelete(`${ROUNDS_KEY}${oldRoundId}`);
+      }
     }
+    
+    await kvSet(ROUNDS_LIST_KEY, roundsList);
   }
-  
-  await kvSet(ROUNDS_LIST_KEY, roundsList);
 }
 
 export async function getRecentRounds(limit: number = 10): Promise<RoundResult[]> {
   const roundsList = (await kvGet(ROUNDS_LIST_KEY)) || [];
-  const recentIds = roundsList.slice(-limit).reverse();
+  // Deduplicate just in case
+  const uniqueIds = Array.from(new Set(roundsList)) as string[];
+  const recentIds = uniqueIds.slice(-limit).reverse();
   
   const rounds: RoundResult[] = [];
   for (const roundId of recentIds) {
@@ -83,17 +89,22 @@ export async function getLeaderboard() {
 
 export async function saveHumanRating(rating: HumanRating): Promise<void> {
   const ratingsList = (await kvGet(HUMAN_RATINGS_LIST_KEY)) || [];
-  ratingsList.push(rating.roundId);
   
-  if (ratingsList.length > 5000) {
-    const oldRoundId = ratingsList.shift();
-    if (oldRoundId) {
-      await kvDelete(`${HUMAN_RATINGS_KEY}${oldRoundId}`);
+  // Only add if not already present
+  if (!ratingsList.includes(rating.roundId)) {
+    ratingsList.push(rating.roundId);
+    
+    if (ratingsList.length > 5000) {
+      const oldRoundId = ratingsList.shift();
+      if (oldRoundId) {
+        await kvDelete(`${HUMAN_RATINGS_KEY}${oldRoundId}`);
+      }
     }
+    
+    await kvSet(HUMAN_RATINGS_LIST_KEY, ratingsList);
   }
   
   await kvSet(`${HUMAN_RATINGS_KEY}${rating.roundId}`, rating);
-  await kvSet(HUMAN_RATINGS_LIST_KEY, ratingsList);
 }
 
 export async function getHumanRatingsForRound(roundId: string): Promise<HumanRating[]> {
@@ -105,7 +116,9 @@ export async function getHumanRatingsForModel(modelId: string): Promise<HumanRat
   const ratingsList = (await kvGet(HUMAN_RATINGS_LIST_KEY)) || [];
   const ratings: HumanRating[] = [];
   
-  for (const roundId of ratingsList) {
+  const uniqueIds = Array.from(new Set(ratingsList)) as string[];
+  
+  for (const roundId of uniqueIds) {
     const rating = await kvGet(`${HUMAN_RATINGS_KEY}${roundId}`);
     if (rating && rating.modelId === modelId) {
       ratings.push(rating);
@@ -117,22 +130,29 @@ export async function getHumanRatingsForModel(modelId: string): Promise<HumanRat
 
 export async function saveEvalMetrics(metrics: EvalMetrics): Promise<void> {
   const metricsList = (await kvGet(EVAL_METRICS_LIST_KEY)) || [];
-  metricsList.push(metrics.roundId);
   
-  if (metricsList.length > 1000) {
-    const oldRoundId = metricsList.shift();
-    if (oldRoundId) {
-      await kvDelete(`${EVAL_METRICS_KEY}${oldRoundId}`);
+  // Only add if not already present
+  if (!metricsList.includes(metrics.roundId)) {
+    metricsList.push(metrics.roundId);
+    
+    if (metricsList.length > 1000) {
+      const oldRoundId = metricsList.shift();
+      if (oldRoundId) {
+        await kvDelete(`${EVAL_METRICS_KEY}${oldRoundId}`);
+      }
     }
+    
+    await kvSet(EVAL_METRICS_LIST_KEY, metricsList);
   }
   
   await kvSet(`${EVAL_METRICS_KEY}${metrics.roundId}`, metrics);
-  await kvSet(EVAL_METRICS_LIST_KEY, metricsList);
 }
 
 export async function getEvalMetrics(limit: number = 100): Promise<EvalMetrics[]> {
   const metricsList = (await kvGet(EVAL_METRICS_LIST_KEY)) || [];
-  const recentIds = metricsList.slice(-limit).reverse();
+  // Deduplicate just in case
+  const uniqueIds = Array.from(new Set(metricsList)) as string[];
+  const recentIds = uniqueIds.slice(-limit).reverse();
   
   const metrics: EvalMetrics[] = [];
   for (const roundId of recentIds) {
@@ -144,4 +164,3 @@ export async function getEvalMetrics(limit: number = 100): Promise<EvalMetrics[]
   
   return metrics;
 }
-

@@ -35,9 +35,8 @@ export async function POST(request: NextRequest) {
       evalMetrics.metrics.feasibility[score.modelId] = score.feasibility;
       evalMetrics.metrics.optimality[score.modelId] = score.optimality;
       evalMetrics.metrics.clarity[score.modelId] = score.clarity;
-      if (score.llmJudgeScore !== undefined) {
-        evalMetrics.metrics.llmJudge[score.modelId] = score.llmJudgeScore;
-      }
+      evalMetrics.metrics.llmJudge[score.modelId] = score.llmJudgeScore || 0;
+      evalMetrics.metrics.humanRating[score.modelId] = score.humanRating || 0;
     });
 
     await storage.saveEvalMetrics(evalMetrics);
