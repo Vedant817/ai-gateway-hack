@@ -1,4 +1,4 @@
-import { ModelRating, RoundResult, HumanRating, EvalMetrics } from '@/types/game';
+import { ModelRating, RoundResult, HumanRating, EvalMetrics, Tournament, Challenge, ModelComparison } from '@/types/game';
 import { kvSet, kvGet, kvGetAll, kvDelete } from './kv-client';
 
 const RATINGS_KEY = 'ratings:';
@@ -8,6 +8,16 @@ const EVAL_METRICS_KEY = 'eval-metrics:';
 const ROUNDS_LIST_KEY = 'rounds-list';
 const HUMAN_RATINGS_LIST_KEY = 'human-ratings-list';
 const EVAL_METRICS_LIST_KEY = 'eval-metrics-list';
+
+const TOURNAMENTS_KEY = 'tournaments:';
+const TOURNAMENTS_LIST_KEY = 'tournaments-list';
+const ACTIVE_TOURNAMENTS_LIST_KEY = 'active-tournaments-list';
+
+const CHALLENGES_KEY = 'challenges:';
+const CHALLENGES_LIST_KEY = 'challenges-list';
+const DAILY_CHALLENGE_KEY = 'daily-challenge';
+
+const COMPARISON_KEY = 'comparisons:';
 
 export async function getModelRating(modelId: string): Promise<ModelRating | undefined> {
   return kvGet(`${RATINGS_KEY}${modelId}`);
@@ -163,4 +173,107 @@ export async function getEvalMetrics(limit: number = 100): Promise<EvalMetrics[]
   }
   
   return metrics;
+}
+
+// Tournament Storage
+export async function saveTournament(tournament: Tournament): Promise<void> {
+  await kvSet(`${TOURNAMENTS_KEY}${tournament.id}`, tournament);
+
+  const allTournaments = (await kvGet(TOURNAMENTS_LIST_KEY)) || [];
+  if (!allTournaments.includes(tournament.id)) {
+    allTournaments.push(tournament.id);
+    await kvSet(TOURNAMENTS_LIST_KEY, allTournaments);
+  }
+
+  const activeTournaments = (await kvGet(ACTIVE_TOURNAMENTS_LIST_KEY)) || [];
+  if (tournament.status === 'active' && !activeTournaments.includes(tournament.id)) {
+    activeTournaments.push(tournament.id);
+    await kvSet(ACTIVE_TOURNAMENTS_LIST_KEY, activeTournaments);
+  } else if (tournament.status !== 'active' && activeTournaments.includes(tournament.id)) {
+    const index = activeTournaments.indexOf(tournament.id);
+    activeTournaments.splice(index, 1);
+    await kvSet(ACTIVE_TOURNAMENTS_LIST_KEY, activeTournaments);
+  }
+}
+
+export async function getTournament(tournamentId: string): Promise<Tournament | undefined> {
+  return kvGet(`${TOURNAMENTS_KEY}${tournamentId}`);
+}
+
+export async function getAllTournaments(): Promise<Tournament[]> {
+  const tournamentIds = (await kvGet(TOURNAMENTS_LIST_KEY)) || [];
+  const tournaments: Tournament[] = [];
+  for (const id of tournamentIds) {
+    const tournament = await getTournament(id);
+    if (tournament) {
+      tournaments.push(tournament);
+    }
+  }
+  return tournaments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+export async function getActiveTournaments(): Promise<Tournament[]> {
+  const tournamentIds = (await kvGet(ACTIVE_TOURNAMENTS_LIST_KEY)) || [];
+  const tournaments: Tournament[] = [];
+  for (const id of tournamentIds) {
+    const tournament = await getTournament(id);
+    if (tournament) {
+      tournaments.push(tournament);
+    }
+  }
+  return tournaments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+// Challenge Storage
+export async function saveChallenge(challenge: Challenge): Promise<void> {
+  await kvSet(`${CHALLENGES_KEY}${challenge.id}`, challenge);
+
+  if (challenge.category === 'daily') {
+    await kvSet(DAILY_CHALLENGE_KEY, challenge.id, 86400); // 24-hour TTL
+  } else {
+    const challengesList = (await kvGet(CHALLENGES_LIST_KEY)) || [];
+    if (!challengesList.includes(challenge.id)) {
+      challengesList.push(challenge.id);
+      await kvSet(CHALLENGES_LIST_KEY, challengesList);
+    }
+  }
+}
+
+export async function getChallenge(challengeId: string): Promise<Challenge | undefined> {
+  return kvGet(`${CHALLENGES_KEY}${challengeId}`);
+}
+
+export async function getDailyChallenge(): Promise<Challenge | undefined> {
+  const dailyChallengeId = await kvGet(DAILY_CHALLENGE_KEY);
+  if (!dailyChallengeId) return undefined;
+  return getChallenge(dailyChallengeId);
+}
+
+export async function getCommunityChallenges(limit: number = 20): Promise<Challenge[]> {
+  const challengeIds = (await kvGet(CHALLENGES_LIST_KEY)) || [];
+  const challenges: Challenge[] = [];
+  const recentIds = challengeIds.slice(-limit).reverse();
+
+  for (const id of recentIds) {
+    const challenge = await getChallenge(id);
+    if (challenge && challenge.category === 'community') {
+      challenges.push(challenge);
+    }
+  }
+  return challenges.sort((a, b) => b.votes - a.votes);
+}
+
+// Analytics Storage
+function getComparisonKey(modelIds: string[]): string {
+  return `${COMPARISON_KEY}${modelIds.sort().join('-')}`;
+}
+
+export async function saveModelComparison(comparison: ModelComparison): Promise<void> {
+  const key = getComparisonKey(comparison.models);
+  await kvSet(key, comparison, 3600); // Cache for 1 hour
+}
+
+export async function getModelComparison(modelIds: string[]): Promise<ModelComparison | undefined> {
+  const key = getComparisonKey(modelIds);
+  return kvGet(key);
 }

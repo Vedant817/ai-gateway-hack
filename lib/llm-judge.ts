@@ -11,6 +11,7 @@ export async function evaluateWithLLM(
   try {
     const judgeModel = modelMap[JUDGE_MODEL];
     if (!judgeModel) {
+      console.warn('Judge model not found:', JUDGE_MODEL);
       return 0.5;
     }
 

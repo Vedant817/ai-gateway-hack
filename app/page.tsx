@@ -10,10 +10,11 @@ import Leaderboard from '@/components/Leaderboard';
 import ExportButton from '@/components/ExportButton';
 import HumanRating from '@/components/HumanRating';
 import ReplayView from '@/components/ReplayView';
-import EvalDashboard from '@/components/EvalDashboard';
+import { ModelComparisonDashboard } from '@/components/ModelComparisonDashboard';
+import { DailyChallengeBanner } from '@/components/DailyChallengeBanner';
 
 type GameState = 'idle' | 'loading' | 'racing' | 'results';
-type ViewMode = 'game' | 'leaderboard' | 'dashboard';
+type ViewMode = 'game' | 'leaderboard' | 'dashboard' | 'challenges';
 
 export default function Home() {
   const [gameState, setGameState] = useState<GameState>('idle');
@@ -26,6 +27,17 @@ export default function Home() {
   const [winner, setWinner] = useState<ModelId | null>(null);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const [showReplay, setShowReplay] = useState(false);
+
+  async function startChallengeGame(challengePuzzle: PuzzleInstance) {
+    setPuzzle(challengePuzzle);
+    setGameState('racing');
+    setSolutions([]);
+    setScores([]);
+    setWinner(null);
+    setRoundResult(null);
+    setShowReplay(false);
+    setViewMode('game');
+  }
 
   async function startGame(seed?: string) {
     try {
@@ -109,7 +121,7 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-4xl font-bold text-black">
-            🏛️ Constraint Coliseum
+            🎲 Constraint Coliseum
           </h1>
           <p className="text-lg text-black">
             AI Planner Arena - Watch models compete to solve constraint puzzles
@@ -117,35 +129,36 @@ export default function Home() {
           <div className="mt-4 flex justify-center gap-2">
             <button
               onClick={() => setViewMode('game')}
-              className={`rounded px-4 py-2 font-medium ${
-                viewMode === 'game'
+              className={`cursor-pointer rounded px-4 py-2 font-medium ${viewMode === 'game'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-black hover:bg-gray-300'
-              }`}
+                }`}
             >
               Game
             </button>
             <button
               onClick={() => setViewMode('leaderboard')}
-              className={`rounded px-4 py-2 font-medium ${
-                viewMode === 'leaderboard'
+              className={`cursor-pointer rounded px-4 py-2 font-medium ${viewMode === 'leaderboard'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-black hover:bg-gray-300'
-              }`}
+                }`}
             >
               Leaderboard
             </button>
             <button
               onClick={() => setViewMode('dashboard')}
-              className={`rounded px-4 py-2 font-medium ${
-                viewMode === 'dashboard'
+              className={`cursor-pointer rounded px-4 py-2 font-medium ${viewMode === 'dashboard'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-black hover:bg-gray-300'
-              }`}
+                }`}
             >
               Eval Dashboard
             </button>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <DailyChallengeBanner onPlayChallenge={startChallengeGame} />
         </div>
 
         {/* Main content */}
@@ -153,7 +166,7 @@ export default function Home() {
           {/* Main content based on view mode */}
           {viewMode === 'dashboard' ? (
             <div className="lg:col-span-3">
-              <EvalDashboard />
+              <ModelComparisonDashboard />
             </div>
           ) : viewMode === 'leaderboard' ? (
             <div className="lg:col-span-3">
@@ -231,45 +244,45 @@ export default function Home() {
               </div>
 
               {/* Center column - Game race and results */}
-          <div className="lg:col-span-2 space-y-4">
-            {gameState === 'idle' && (
-              <div className="rounded-lg border bg-white p-12 text-center shadow-sm text-black">
-                <p className="text-black">
-                  Select a difficulty and click &quot;Start Round&quot; to begin!
-                </p>
-              </div>
-            )}
+              <div className="lg:col-span-2 space-y-4">
+                {gameState === 'idle' && (
+                  <div className="rounded-lg border bg-white p-12 text-center shadow-sm text-black">
+                    <p className="text-black">
+                      Select a difficulty and click &quot;Start Round&quot; to begin!
+                    </p>
+                  </div>
+                )}
 
-            {gameState === 'loading' && (
-              <div className="rounded-lg border bg-white p-12 text-center shadow-sm text-black">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-                <p className="mt-4 text-black">Generating puzzle...</p>
-              </div>
-            )}
+                {gameState === 'loading' && (
+                  <div className="rounded-lg border bg-white p-12 text-center shadow-sm text-black">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+                    <p className="mt-4 text-black">Generating puzzle...</p>
+                  </div>
+                )}
 
-            {gameState === 'racing' && puzzle && (
-              <div className="rounded-lg border bg-white p-6 shadow-sm text-black">
-                <GameRace puzzle={puzzle} onComplete={handleRaceComplete} />
-              </div>
-            )}
-
-            {gameState === 'results' && scores.length > 0 && winner && (
-              <div className="space-y-4">
-                <div className="rounded-lg border bg-white p-6 shadow-sm text-black">
-                  <ResultsPodium scores={scores} winner={winner} />
-                </div>
-                <HumanRating
-                  roundId={roundResult?.roundId || ''}
-                  scores={scores}
-                />
-                {showReplay && roundResult && (
+                {gameState === 'racing' && puzzle && (
                   <div className="rounded-lg border bg-white p-6 shadow-sm text-black">
-                    <ReplayView roundResult={roundResult} />
+                    <GameRace puzzle={puzzle} onComplete={handleRaceComplete} />
+                  </div>
+                )}
+
+                {gameState === 'results' && scores.length > 0 && winner && (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border bg-white p-6 shadow-sm text-black">
+                      <ResultsPodium scores={scores} winner={winner} />
+                    </div>
+                    <HumanRating
+                      roundId={roundResult?.roundId || ''}
+                      scores={scores}
+                    />
+                    {showReplay && roundResult && (
+                      <div className="rounded-lg border bg-white p-6 shadow-sm text-black">
+                        <ReplayView roundResult={roundResult} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
             </>
           )}
         </div>

@@ -187,3 +187,88 @@ export interface PuzzleSchema {
   };
 }
 
+// Phase 2.0 Types
+
+// Tournament System
+export interface TournamentSettings {
+  bestOf: number;
+  puzzleType: PuzzleType | 'any';
+  difficulty: Difficulty | 'any';
+}
+
+export interface Match {
+  matchId: string;
+  modelA: ModelId;
+  modelB: ModelId | null; // null for a bye
+  winner?: ModelId;
+  results: RoundResult[]; // for best-of-N series
+  status: 'pending' | 'in-progress' | 'completed';
+}
+
+export interface TournamentRound {
+  roundIndex: number;
+  matches: Match[];
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  models: ModelId[];
+  rounds: TournamentRound[];
+  currentRound: number;
+  status: 'pending' | 'active' | 'completed';
+  winner?: ModelId;
+  settings: TournamentSettings;
+  createdAt: string;
+}
+
+// Community Challenge System
+export interface ChallengeSubmission {
+  userId: string; // or some identifier
+  solution: ModelSolution;
+  score: SolutionScore;
+  submittedAt: string;
+}
+
+export interface Challenge {
+  id: string;
+  name: string;
+  description: string;
+  puzzle: PuzzleInstance;
+  submissions: ChallengeSubmission[];
+  votes: number;
+  createdBy: string; // userId
+  shareCode: string;
+  category: 'community' | 'daily' | 'expert';
+  createdAt: string;
+}
+
+// Analytics & Insights
+export interface ComparisonMetrics {
+  winRate: number;
+  avgScore: number;
+  consistency: number; // std dev of scores
+  performanceByDifficulty: Record<Difficulty, { wins: number; rounds: number }>;
+}
+
+export interface PerformanceInsights {
+  strengths: string[];
+  weaknesses: string[];
+  bestPerformerFor: Difficulty[];
+  recommendedUseCases: string[];
+  summary: string;
+}
+
+export interface MatchRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface ModelComparison {
+  models: ModelId[];
+  metrics: Record<ModelId, ComparisonMetrics>;
+  insights: Record<ModelId, PerformanceInsights>;
+  headToHead: Record<string, MatchRecord>; // e.g., "modelA_vs_modelB"
+}
+

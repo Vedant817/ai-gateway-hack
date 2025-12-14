@@ -13,15 +13,15 @@ const gatewayProvider = createOpenAI({
 });
 
 export const modelMap: Record<ModelId, any> = {
-  'grok-code-fast-1': gatewayProvider('xai/grok-code-fast-1'),
-  'grok-4-fast-reasoning': gatewayProvider('xai/grok-4-fast-reasoning'),
-  'claude-sonnet-4.5': gatewayProvider('anthropic/claude-3-7-sonnet-latest'),
-  'claude-haiku-4.5': gatewayProvider('anthropic/claude-3-5-haiku-latest'),
-  'claude-opus-4.5': gatewayProvider('anthropic/claude-3-opus-latest'),
-  'claude-3.7-sonnet': gatewayProvider('anthropic/claude-3-7-sonnet-latest'),
-  'gpt-4.1-mini': gatewayProvider('openai/gpt-4.1-mini'),
-  'gemini-2.5-flash-lite': gatewayProvider('google/gemini-2.5-flash-lite'),
-  'gemini-2.5-flash': gatewayProvider('google/gemini-2.5-flash'),
-  'gemini-3-pro-preview': gatewayProvider('google/gemini-3-pro-preview'),
+  'grok-code-fast-1': gatewayProvider.chat('xai/grok-code-fast-1'),
+  'grok-4-fast-reasoning': gatewayProvider.chat('xai/grok-4-fast-reasoning'),
+  'claude-sonnet-4.5': gatewayProvider.chat('anthropic/claude-3-7-sonnet-latest'),
+  'claude-haiku-4.5': gatewayProvider.chat('anthropic/claude-3-5-haiku-latest'),
+  'claude-opus-4.5': gatewayProvider.chat('anthropic/claude-3-opus-latest'),
+  'claude-3.7-sonnet': gatewayProvider.chat('anthropic/claude-3-7-sonnet-latest'),
+  'gpt-4.1-mini': gatewayProvider.chat('openai/gpt-4o-mini'), // Use known model ID
+  'gemini-2.5-flash-lite': gatewayProvider.chat('google/gemini-2.5-flash-lite'),
+  'gemini-2.5-flash': gatewayProvider.chat('google/gemini-2.5-flash'),
+  'gemini-3-pro-preview': gatewayProvider.chat('google/gemini-3-pro-preview'),
 };
 
